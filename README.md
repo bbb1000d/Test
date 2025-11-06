@@ -4,35 +4,48 @@ A polished, browser-based workspace that pairs GPT-powered study support with a 
 
 ## Features
 
-- **Onboarding survey:** Capture a learner&apos;s name, goals, study interests, and preferred focus mode through an animated progress tracker.
+- **Onboarding survey:** Capture a learner's name, goals, study interests, and preferred focus mode through an animated progress tracker.
 - **Trusted material vault:** Upload and manage class documents while keeping the AI grounded in vetted sources.
 - **Adaptive study flow:** Configure topics and prompts, then review roadmap cards and a session blueprint mirroring instructor-style practice.
 - **Insight sidebar:** Surface personalized guidance, upcoming milestones, and a quality pledge to reinforce academic integrity.
 - **Modern design:** Built with React, Material UI, and glassmorphism-inspired panels for a warm, premium feel.
 
-## Getting started
+## Quick start
 
-1. Install dependencies:
+Follow these steps to get the app running locally in just a few minutes.
 
+1. **Verify prerequisites**
+   - Node.js 18+ (check with `node -v`)
+   - npm 9+ (check with `npm -v`)
+
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. Start the development server:
-
+3. **Start the development server**
    ```bash
    npm run dev
    ```
+   The site will be available at [http://localhost:5173](http://localhost:5173). Vite prints the exact URL in the terminal.
 
-   The app runs on [http://localhost:5173](http://localhost:5173).
+4. **(Optional) Run quality checks**
+   ```bash
+   npm run lint
+   ```
 
-3. Build for production:
-
+5. **Create a production build**
    ```bash
    npm run build
    ```
 
-## Architecture
+6. **Preview the production bundle**
+   ```bash
+   npm run preview
+   ```
+   This serves the `dist/` output so you can validate the build before deployment.
+
+## Project structure
 
 ```
 src/
