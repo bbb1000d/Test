@@ -17,6 +17,8 @@ materials.
   multi-phase study plans.
 - **Interactive conversations** that always ground responses in the provided
   materials.
+- **Menu-driven workspace** for learners who prefer guided input over command
+  line flags.
 
 ## Running the CLI
 
@@ -49,6 +51,28 @@ OpenAI's API replace the `GPTClient.complete` method with a real API call.
 
 Subsequent panels list the trusted documents, learner profile, and a formatted
 preview of the prompt that will be sent to the model.
+
+## Interactive Workspace
+
+Prefer a guided experience? Launch the interactive assistant:
+
+```bash
+python -m study_assistant.interactive
+```
+
+You'll be welcomed with a styled dashboard that walks through adding trusted
+documents, capturing goals and study habits, and then presents a menu of
+actions:
+
+- Generate personalized notes
+- Diagnose weak spots
+- Create formative quizzes
+- Draft capstone-style assessments
+- Design applied practice activities
+- Build adaptive study plans
+
+The workspace can be revisited throughout a study session to add materials or
+update preferences without rerunning the CLI.
 
 ## Integrating Real Models
 

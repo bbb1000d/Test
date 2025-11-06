@@ -161,11 +161,28 @@ class StyledConsole:
                 summary_lines.append(f"- {topic}: {note}")
         self._panel("Learner Profile", summary_lines)
 
-    def print_result(self, title: str, body: str) -> None:
+    def print_result(self, title: str, body: str, *, accent: str = "accent") -> None:
         if body.strip().startswith("[GPTClient]"):
             self._render_stub_completion(title, body)
         else:
-            self._panel(title, body)
+            self._panel(title, body, accent=accent)
+
+    def prompt(self, label: str, *, default: Optional[str] = None, allow_empty: bool = True) -> str:
+        """Display an inline prompt with optional default handling."""
+
+        prompt_text = label
+        if default:
+            prompt_text += f" [{default}]"
+        prompt_text += ": "
+        colored_prompt = self._colorize(prompt_text, "highlight")
+        while True:
+            response = input(colored_prompt)
+            if not response and default is not None:
+                response = default
+            response = response.strip()
+            if response or allow_empty:
+                return response
+            colored_prompt = self._colorize(f"{label}: ", "highlight")
 
     # ------------------------------------------------------------------
     # Specialized renderers
