@@ -1,96 +1,55 @@
-# Study Assistant Prototype
+# Pathfinder Study Companion
 
-This repository contains a prototype architecture for a GPT-powered study
-assistant that personalizes learning based on uploaded documents, learner
-questionnaires, and assessment history. The goal is to provide long-form notes,
-detect weaknesses, create chapter-sized quizzes, and design capstone
-assessments aligned with instructor styles while relying solely on trusted
-materials.
+A polished, browser-based workspace that pairs GPT-powered study support with a premium user interface. Pathfinder helps learners curate trusted materials, capture learning preferences, and generate interactive study plans without relying on a Python CLI.
 
 ## Features
 
-- **Document ingestion** with trust filtering to avoid unverified sources.
-- **Learner profiling** capturing goals, study modalities, and questionnaire
-  responses.
-- **Adaptive orchestration** that generates study notes, weakness diagnostics,
-  micro assessments, capstone assessments, applied practice activities, and
-  multi-phase study plans.
-- **Interactive conversations** that always ground responses in the provided
-  materials.
-- **Menu-driven workspace** for learners who prefer guided input over command
-  line flags.
+- **Onboarding survey:** Capture a learner&apos;s name, goals, study interests, and preferred focus mode through an animated progress tracker.
+- **Trusted material vault:** Upload and manage class documents while keeping the AI grounded in vetted sources.
+- **Adaptive study flow:** Configure topics and prompts, then review roadmap cards and a session blueprint mirroring instructor-style practice.
+- **Insight sidebar:** Surface personalized guidance, upcoming milestones, and a quality pledge to reinforce academic integrity.
+- **Modern design:** Built with React, Material UI, and glassmorphism-inspired panels for a warm, premium feel.
 
-## Running the CLI
+## Getting started
 
-```bash
-python -m study_assistant.main "Cell Biology" "Focus on mitosis" ./examples/mitosis_notes.txt \
-  --goal "Ace final exam" --modalities visual practice \
-  --questionnaire "Study session length?=45 minutes" \
-  --weakness "Cytokinesis=Confused about plant vs animal cells"
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+   The app runs on [http://localhost:5173](http://localhost:5173).
+
+3. Build for production:
+
+   ```bash
+   npm run build
+   ```
+
+## Architecture
+
+```
+src/
+├── App.tsx              # Theme provider and high-level layout
+├── components/          # UI building blocks (hero, survey, workspace, insights)
+├── hooks/               # Zustand-powered session store and upload helper
+├── styles/              # Global CSS variables and base styles
+└── utils/               # Mock AI generation logic and helpers
 ```
 
-The CLI now renders a polished dashboard that summarizes the session, trusted
-materials, and the GPT prompt preview. Disable color output with
-`--no-color` or resize the layout with `--width=<columns>`. To integrate with
-OpenAI's API replace the `GPTClient.complete` method with a real API call.
+- **State management:** [`zustand`](https://github.com/pmndrs/zustand) keeps the interface responsive without boilerplate.
+- **Data fetching stubs:** React Query is wired for future GPT integrations while current content is generated locally for demos.
+- **Design system:** Material UI supplies responsive primitives, while custom gradients and cards create a polished experience.
 
-```
-╔════════════════════════════════════════════════════════════════════════════════════════════╗
-║                                      📚 Study Assistant                                     ║
-║                              Cell Biology • Personalized Notes                              ║
-║                                       2025-11-06 11:07                                      ║
-╚════════════════════════════════════════════════════════════════════════════════════════════╝
-┌────────────────────────────────────────────────────────────────────────────────────────────┐
-│ Session Overview                                                                            │
-├────────────────────────────────────────────────────────────────────────────────────────────┤
-│ Mode: Personalized Notes                                                                    │
-│ Topic: Cell Biology                                                                         │
-│ Focus: Focus on mitosis                                                                     │
-└────────────────────────────────────────────────────────────────────────────────────────────┘
-```
+## Roadmap
 
-Subsequent panels list the trusted documents, learner profile, and a formatted
-preview of the prompt that will be sent to the model.
-
-## Interactive Workspace
-
-Prefer a guided experience? Launch the interactive assistant:
-
-```bash
-python -m study_assistant.interactive
-```
-
-You'll be welcomed with a styled dashboard that walks through adding trusted
-documents, capturing goals and study habits, and then presents a menu of
-actions:
-
-- Generate personalized notes
-- Diagnose weak spots
-- Create formative quizzes
-- Draft capstone-style assessments
-- Design applied practice activities
-- Build adaptive study plans
-
-The workspace can be revisited throughout a study session to add materials or
-update preferences without rerunning the CLI.
-
-## Integrating Real Models
-
-1. Install the OpenAI Python SDK.
-2. Update `GPTClient.complete` to call the `chat.completions` endpoint.
-3. Inject your API key via environment variables or a secrets manager.
-4. Consider caching completions to reduce latency and cost.
-
-## Trusted Source Strategy
-
-The `DocumentStore` currently accepts any file path but prioritizes documents
-with trusted indicators such as `.pdf` extensions, syllabus mentions, or
-explicit `user:` prefixes. Extend `_is_trusted_source` with institution-specific
-logic or integrate with a content moderation pipeline.
-
-## Extending the System
-
-- Connect to a vector store (e.g., FAISS) for semantic retrieval.
-- Add evaluation loops capturing learner quiz performance.
-- Build a frontend using React or Flutter that invokes the orchestration API.
-- Persist learner profiles and documents in a database for multi-device access.
+- Connect the study flow to real GPT endpoints with streaming responses.
+- Persist uploaded materials and learner profiles to a secure backend.
+- Add instructor dashboards with cohort analytics and content curation tools.
+- Support collaborative study rooms and shared quiz banks.
