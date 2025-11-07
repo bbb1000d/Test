@@ -1,68 +1,71 @@
 # Pathfinder Study Companion
 
-A polished, browser-based workspace that pairs GPT-powered study support with a premium user interface. Pathfinder helps learners curate trusted materials, capture learning preferences, and generate interactive study plans without relying on a Python CLI.
+Pathfinder is a self-contained study dashboard that runs without external package downloads. It combines a static frontend with a lightweight Node.js backend so you can register a profile, sign in, launch AI-generated study plans, and track your planner in one place.
 
 ## Features
 
-- **Onboarding survey:** Capture a learner's name, goals, study interests, and preferred focus mode through an animated progress tracker.
-- **Trusted material vault:** Upload and manage class documents while keeping the AI grounded in vetted sources.
-- **Adaptive study flow:** Configure topics and prompts, then review roadmap cards and a session blueprint mirroring instructor-style practice.
-- **Insight sidebar:** Surface personalized guidance, upcoming milestones, and a quality pledge to reinforce academic integrity.
-- **Modern design:** Built with React, Material UI, and glassmorphism-inspired panels for a warm, premium feel.
+- **Real profile management** – Create a learner profile with name, email, password, habits, and difficulties. Sign in/out updates are persisted on disk.
+- **AI study planner** – Request a plan by topic, language, goal, and optional resources. The server generates steps, quizzes, and a final exam rehearsal while logging past studies.
+- **Progress tracking** – Toggle planner tasks, mark quiz completions, and watch the progress bar update instantly.
+- **Calendar and history** – Keep upcoming focus sessions and assessments visible alongside recent study notes.
+- **Interactive sparks** – Rotate playful prompts that encourage reflection and memory boosts.
 
-## Quick start
+## Project layout
 
-Follow these steps to get the app running locally in just a few minutes.
+```
+index.html        # Static entry point and layout shell
+public/           # Frontend scripts and styling (vanilla JS)
+server/           # Node backend with plan generator and JSON persistence
+scripts/          # Utility scripts (build pipeline)
+data/             # Generated persistence file (state.json)
+```
 
-1. **Verify prerequisites**
-   - Node.js 18+ (check with `node -v`)
-   - npm 9+ (check with `npm -v`)
+## Getting started
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+1. **Prerequisites**
+   - Node.js 18 or newer (includes the necessary modern `fs` APIs)
 
-3. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-   The site will be available at [http://localhost:5173](http://localhost:5173). Vite prints the exact URL in the terminal.
-
-4. **(Optional) Run quality checks**
-   ```bash
-   npm run lint
-   ```
-
-5. **Create a production build**
+2. **Build the static assets**
    ```bash
    npm run build
    ```
+   This copies `index.html` and the frontend assets into `dist/`.
 
-6. **Preview the production bundle**
+3. **Start the backend**
    ```bash
-   npm run preview
+   npm start
    ```
-   This serves the `dist/` output so you can validate the build before deployment.
+   The server listens on [http://localhost:3000](http://localhost:3000) and serves both the API and the static UI. The first run seeds demo tasks, events, studies, and tests into `data/state.json`.
 
-## Project structure
+4. **Develop without rebuilding**
+   The backend looks for assets in both `dist/` and `public/`. During development you can edit files in `public/` and simply refresh the browser without rebuilding.
 
-```
-src/
-├── App.tsx              # Theme provider and high-level layout
-├── components/          # UI building blocks (hero, survey, workspace, insights)
-├── hooks/               # Zustand-powered session store and upload helper
-├── styles/              # Global CSS variables and base styles
-└── utils/               # Mock AI generation logic and helpers
-```
+## Scripts
 
-- **State management:** [`zustand`](https://github.com/pmndrs/zustand) keeps the interface responsive without boilerplate.
-- **Data fetching stubs:** React Query is wired for future GPT integrations while current content is generated locally for demos.
-- **Design system:** Material UI supplies responsive primitives, while custom gradients and cards create a polished experience.
+| Command         | Description |
+|-----------------|-------------|
+| `npm run build` | Copies the static assets into the `dist/` directory. |
+| `npm start`     | Launches the Node.js server that powers the API and serves the UI. |
 
-## Roadmap
+## API overview
 
-- Connect the study flow to real GPT endpoints with streaming responses.
-- Persist uploaded materials and learner profiles to a secure backend.
-- Add instructor dashboards with cohort analytics and content curation tools.
-- Support collaborative study rooms and shared quiz banks.
+All routes live under `/api/` and return JSON.
+
+- `GET /api/state` – Retrieve the entire persisted state (profile, plan, tasks, history).
+- `POST /api/profile/register` – Create a new profile and sign in.
+- `POST /api/profile/sign-in` – Authenticate with an email + password pair.
+- `POST /api/profile/sign-out` – Clear the authentication flag.
+- `PATCH /api/profile` – Update profile fields.
+- `POST /api/started` – Mark the workspace as started to reveal planner actions.
+- `POST /api/tasks` – Append a task. Use `POST /api/tasks/toggle/:id` to switch completion.
+- `POST /api/plan` – Generate a new learning plan from the provided inputs.
+- `POST /api/plan/steps/:id` – Toggle a plan step.
+- `POST /api/plan/quizzes/:id` – Toggle a quiz completion.
+
+Because the project stores everything on disk, you can delete `data/state.json` to reset to the seeded defaults.
+
+## Notes
+
+- No external npm packages are required; everything uses the Node.js standard library and vanilla browser APIs.
+- The generated plan mirrors the structure requested by the user: lectures, practice, reflection, and a culminating exam rehearsal.
+- The UI is intentionally neutral and GitHub-inspired so the study focus remains on content, not chrome.
