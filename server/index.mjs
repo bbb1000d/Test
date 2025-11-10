@@ -3,9 +3,8 @@ import { readFile, access } from 'fs/promises';
 import { constants as fsConstants } from 'fs';
 import { resolve, extname, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { loadState, saveState, appendStudyFromPlan } from './store.mjs';
+import { db, StoreError } from './store.mjs';
 import { generateLearningPlan } from './plan.mjs';
-import { createId } from './util.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -22,8 +21,6 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
 };
-
-let state = await loadState();
 
 function respondJSON(res, statusCode, payload) {
   res.writeHead(statusCode, {
@@ -47,24 +44,18 @@ async function readRequestBody(req) {
   }
 }
 
-function sanitizeProfileInput(input) {
-  const base = {
-    name: (input.name || '').trim(),
-    email: (input.email || '').trim(),
-    password: (input.password || '').trim(),
-    studyHabits: (input.studyHabits || '').trim(),
-    difficulties: (input.difficulties || '').trim(),
-    biography: (input.biography || '').trim(),
-    languagePreference: (input.languagePreference || '').trim() || 'English',
-  };
-  if (!base.name || !base.email || !base.password) {
-    return null;
+function handleStoreError(res, error) {
+  if (error instanceof StoreError || typeof error.statusCode === 'number') {
+    respondJSON(res, error.statusCode, { error: error.message });
+    return;
   }
-  return base;
+  console.error('Store error', error);
+  respondJSON(res, 500, { error: 'Internal server error' });
 }
 
 function ensureAuthenticated(res) {
-  if (!state.authenticated) {
+  const { authenticated } = db.getState();
+  if (!authenticated) {
     respondJSON(res, 401, { error: 'Not signed in' });
     return false;
   }
@@ -76,51 +67,39 @@ async function handleApi(req, res, url) {
   const method = req.method || 'GET';
 
   if (segments[1] === 'state' && method === 'GET') {
-    respondJSON(res, 200, state);
+    respondJSON(res, 200, db.getState());
     return true;
   }
 
   if (segments[1] === 'profile' && method === 'POST' && segments[2] === 'register') {
     const body = await readRequestBody(req);
-    const profile = sanitizeProfileInput(body);
-    if (!profile) {
-      respondJSON(res, 400, { error: 'Missing required profile fields' });
-      return true;
+    try {
+      const nextState = await db.registerProfile(body);
+      respondJSON(res, 201, nextState);
+    } catch (error) {
+      handleStoreError(res, error);
     }
-    state = {
-      ...state,
-      profile,
-      authenticated: true,
-      started: false,
-    };
-    await saveState(state);
-    respondJSON(res, 201, state);
     return true;
   }
 
   if (segments[1] === 'profile' && method === 'POST' && segments[2] === 'sign-in') {
     const body = await readRequestBody(req);
-    if (!state.profile) {
-      respondJSON(res, 404, { error: 'No profile registered' });
-      return true;
-    }
-    const email = (body.email || '').trim().toLowerCase();
-    const password = (body.password || '').trim();
-    const storedEmail = state.profile.email.trim().toLowerCase();
-    if (email === storedEmail && password === state.profile.password) {
-      state = { ...state, authenticated: true };
-      await saveState(state);
+    try {
+      await db.signIn(body.email, body.password);
       respondJSON(res, 200, { success: true });
-      return true;
+    } catch (error) {
+      handleStoreError(res, error);
     }
-    respondJSON(res, 401, { error: 'Invalid credentials' });
     return true;
   }
 
   if (segments[1] === 'profile' && method === 'POST' && segments[2] === 'sign-out') {
-    state = { ...state, authenticated: false };
-    await saveState(state);
-    respondJSON(res, 200, { success: true });
+    try {
+      await db.signOut();
+      respondJSON(res, 200, { success: true });
+    } catch (error) {
+      handleStoreError(res, error);
+    }
     return true;
   }
 
@@ -128,22 +107,13 @@ async function handleApi(req, res, url) {
     if (!ensureAuthenticated(res)) {
       return true;
     }
-    if (!state.profile) {
-      respondJSON(res, 404, { error: 'No profile registered' });
-      return true;
-    }
     const body = await readRequestBody(req);
-    const updates = sanitizeProfileInput({ ...state.profile, ...body });
-    if (!updates) {
-      respondJSON(res, 400, { error: 'Invalid profile updates' });
-      return true;
+    try {
+      const nextState = await db.updateProfile(body);
+      respondJSON(res, 200, nextState.profile);
+    } catch (error) {
+      handleStoreError(res, error);
     }
-    state = {
-      ...state,
-      profile: { ...state.profile, ...updates },
-    };
-    await saveState(state);
-    respondJSON(res, 200, state.profile);
     return true;
   }
 
@@ -151,9 +121,12 @@ async function handleApi(req, res, url) {
     if (!ensureAuthenticated(res)) {
       return true;
     }
-    state = { ...state, started: true };
-    await saveState(state);
-    respondJSON(res, 200, { started: true });
+    try {
+      await db.markStarted();
+      respondJSON(res, 200, { started: true });
+    } catch (error) {
+      handleStoreError(res, error);
+    }
     return true;
   }
 
@@ -162,22 +135,12 @@ async function handleApi(req, res, url) {
       return true;
     }
     const body = await readRequestBody(req);
-    if (!body.label) {
-      respondJSON(res, 400, { error: 'Task label is required' });
-      return true;
+    try {
+      const task = await db.addTask(body);
+      respondJSON(res, 201, task);
+    } catch (error) {
+      handleStoreError(res, error);
     }
-    const task = {
-      id: createId(),
-      label: String(body.label),
-      dueDate: String(body.dueDate || ''),
-      done: Boolean(body.done),
-    };
-    state = {
-      ...state,
-      tasks: [...state.tasks, task],
-    };
-    await saveState(state);
-    respondJSON(res, 201, task);
     return true;
   }
 
@@ -186,12 +149,12 @@ async function handleApi(req, res, url) {
       return true;
     }
     const id = segments[3];
-    const nextTasks = state.tasks.map((task) =>
-      task.id === id ? { ...task, done: !task.done } : task
-    );
-    state = { ...state, tasks: nextTasks };
-    await saveState(state);
-    respondJSON(res, 200, nextTasks.find((task) => task.id === id));
+    try {
+      const task = await db.toggleTask(id);
+      respondJSON(res, 200, task);
+    } catch (error) {
+      handleStoreError(res, error);
+    }
     return true;
   }
 
@@ -213,15 +176,12 @@ async function handleApi(req, res, url) {
       attachments,
       outcomeDetail: body.outcomeDetail,
     });
-    let nextState = {
-      ...state,
-      started: true,
-      activePlan: plan,
-    };
-    nextState = appendStudyFromPlan(nextState, plan);
-    state = nextState;
-    await saveState(state);
-    respondJSON(res, 201, plan);
+    try {
+      await db.activatePlan(plan);
+      respondJSON(res, 201, plan);
+    } catch (error) {
+      handleStoreError(res, error);
+    }
     return true;
   }
 
@@ -229,26 +189,13 @@ async function handleApi(req, res, url) {
     if (!ensureAuthenticated(res)) {
       return true;
     }
-    if (!state.activePlan) {
-      respondJSON(res, 404, { error: 'No active plan' });
-      return true;
-    }
     const id = segments[3];
-    const completed = new Set(state.activePlan.completedSteps);
-    if (completed.has(id)) {
-      completed.delete(id);
-    } else {
-      completed.add(id);
+    try {
+      const plan = await db.togglePlanStep(id);
+      respondJSON(res, 200, plan);
+    } catch (error) {
+      handleStoreError(res, error);
     }
-    state = {
-      ...state,
-      activePlan: {
-        ...state.activePlan,
-        completedSteps: Array.from(completed),
-      },
-    };
-    await saveState(state);
-    respondJSON(res, 200, state.activePlan);
     return true;
   }
 
@@ -256,26 +203,13 @@ async function handleApi(req, res, url) {
     if (!ensureAuthenticated(res)) {
       return true;
     }
-    if (!state.activePlan) {
-      respondJSON(res, 404, { error: 'No active plan' });
-      return true;
-    }
     const id = segments[3];
-    const completed = new Set(state.activePlan.completedQuizzes);
-    if (completed.has(id)) {
-      completed.delete(id);
-    } else {
-      completed.add(id);
+    try {
+      const plan = await db.togglePlanQuiz(id);
+      respondJSON(res, 200, plan);
+    } catch (error) {
+      handleStoreError(res, error);
     }
-    state = {
-      ...state,
-      activePlan: {
-        ...state.activePlan,
-        completedQuizzes: Array.from(completed),
-      },
-    };
-    await saveState(state);
-    respondJSON(res, 200, state.activePlan);
     return true;
   }
 
